@@ -7,18 +7,87 @@ import { colors } from '../../theme'
 import Anonimo from '../../../assets/thumbs/anonimo.jpg'
 import { MaterialIcons } from '@expo/vector-icons'
 import moment from 'moment'
+import { getTipAudio } from '../../audioTipManager'
 
 export default function Call({ tipParams, refuse }) {
+  const states = {
+    START: 0,
+    RINGTONE_PLAYING: 1,
+    ACCEPTED: 2,
+    TIP_PLAYING: 3,
+    TIP_OVER: 4,
+    REPLAY: 5,
+    TIP_REPLAYING: 6,
+  }
+
   const { player, tip } = tipParams
-  const [accepted, setaccepted] = useState(false)
-  const [tipIsPlaying, settipIsPlaying] = useState(false)
+  const [state, setstate] = useState(states.START)
   const [timePassed, settimePassed] = useState(0)
 
   const [ringtone, setringtone] = useState()
   const [audioTip, setaudioTip] = useState()
 
+  useEffect(() => {
+    // console.log('state: ', state)
+    switch (state) {
+      case states.START: {
+        setstate(states.RINGTONE_PLAYING)
+        playRingtone()
+        break
+      }
+      case states.RINGTONE_PLAYING: {
+        break
+      }
+      case states.ACCEPTED: {
+        // console.log('Unloading Ringtone')
+        ringtone?.unloadAsync()
+
+        setstate(states.TIP_PLAYING)
+        playAudioTip()
+        break
+      }
+      case states.TIP_PLAYING: {
+        break
+      }
+      case states.TIP_OVER: {
+        settimePassed(0)
+
+        // console.log('Unloading tip')
+        audioTip?.unloadAsync()
+        break
+      }
+
+      case states.REPLAY: {
+        setstate(states.TIP_REPLAYING)
+        playAudioTip()
+        break
+      }
+      default:
+        break
+    }
+  }, [state])
+
+  const unmount = async () => {
+    // console.log('when does it happens')
+    Audio.setAudioModeAsync({
+      playThroughEarpieceAndroid: false,
+    })
+    try {
+      ringtone?.stopAsync()
+      ringtone?.unloadAsync()
+
+      audioTip?.unloadAsync()
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  useInterval(() => {
+    if (state == states.TIP_PLAYING) settimePassed((time) => time + 1000)
+  }, 1000)
+
   const playRingtone = async () => {
-    console.log('Loading Ringtone')
+    // console.log('Loading Ringtone')
     const { sound } = await Audio.Sound.createAsync(
       require('../../../assets/audio/ringtone.mp3'),
       {
@@ -27,76 +96,34 @@ export default function Call({ tipParams, refuse }) {
     )
     setringtone(sound)
 
-    console.log('Playing Ringtone')
+    // console.log('Playing Ringtone')
     await sound.playAsync()
   }
 
   const playAudioTip = async () => {
-    console.log('Loading audio tip')
+    // console.log('Loading audio tip')
     try {
-      console.log('set ear')
+      // console.log('Setting ear mode')
       await Audio.setAudioModeAsync({
         playThroughEarpieceAndroid: true,
       })
-      const { sound } = await Audio.Sound.createAsync({
-        uri: tip.audioURI,
-      })
-      sound.setVolumeAsync()
+      const { sound } = await Audio.Sound.createAsync(
+        getTipAudio(tip.audioName)
+      )
+      // sound.setVolumeAsync()
       sound.setOnPlaybackStatusUpdate((status) => {
         if (status.didJustFinish) {
-          console.log('unset ear')
-          Audio.setAudioModeAsync({
-            playThroughEarpieceAndroid: false,
-          })
+          setstate(states.TIP_OVER)
         }
       })
 
       setaudioTip(sound)
-      console.log('Playing audio tip')
+      // console.log('Playing audio tip')
       sound.playAsync()
     } catch (error) {
-      console.log('err', error)
+      // console.log('err', error)
     }
   }
-
-  const replay = async () => {}
-
-  // if accepted, play the tip
-  useEffect(() => {
-    if (!audioTip && accepted) playAudioTip()
-    return () => {
-      console.log('Unloading audio tip')
-      audioTip?.unloadAsync()
-    }
-  }, [audioTip, accepted])
-
-  // play the ringtone
-  useEffect(() => {
-    if (!ringtone) playRingtone()
-    return () => {
-      console.log('Unloading Ringtone')
-      ringtone?.unloadAsync()
-    }
-  }, [ringtone])
-
-  // if accepted stop the ringtone
-  useEffect(() => {
-    if (accepted) {
-      try {
-        ringtone?.stopAsync()
-      } catch (error) {
-        console.log(error)
-      }
-    }
-  }, [accepted])
-
-  const acceptCall = () => {
-    setaccepted(true)
-  }
-
-  useInterval(() => {
-    if (accepted) settimePassed((time) => time + 1000)
-  }, 1000)
 
   return (
     <View style={styles.container}>
@@ -104,7 +131,7 @@ export default function Call({ tipParams, refuse }) {
         <Text style={styles.title}>Chamada de voz</Text>
       </View>
 
-      {accepted && (
+      {state == states.TIP_PLAYING && (
         <View style={{ marginTop: 20 }}>
           <Text style={styles.title}>
             {moment()
@@ -115,57 +142,70 @@ export default function Call({ tipParams, refuse }) {
         </View>
       )}
 
-      <View style={[styles.characters, { marginTop: accepted ? 80 : 120 }]}>
+      <View style={[styles.characters]}>
         <View style={styles.character}>
           <Image source={Anonimo} style={styles.thumb} />
           <Text style={styles.name}>Anônimo</Text>
         </View>
-        {!accepted && (
-          <View style={{ flexDirection: 'row', marginHorizontal: 30 }}>
-            <MaterialIcons name='double-arrow' size={30} color={colors.light} />
-          </View>
-        )}
-        {!accepted && (
-          <View style={styles.character}>
-            <Image source={player.thumb} style={styles.thumb} />
-            <Text style={styles.name}>{player.name}</Text>
-          </View>
+        {state == states.RINGTONE_PLAYING && (
+          <>
+            <View style={{ flexDirection: 'row', marginHorizontal: 30 }}>
+              <MaterialIcons
+                name='double-arrow'
+                size={30}
+                color={colors.light}
+              />
+            </View>
+            <View style={styles.character}>
+              <Image source={player.thumb} style={styles.thumb} />
+              <Text style={styles.name}>{player.name}</Text>
+            </View>
+          </>
         )}
       </View>
 
       <View style={styles.action}>
-        {accepted ? (
-          <TouchableOpacity disabled={accepted} onPress={acceptCall}>
+        {/* accetp button */}
+        {state == states.RINGTONE_PLAYING && (
+          <TouchableOpacity onPress={() => setstate(states.ACCEPTED)}>
             <View
-              style={[
-                styles.roundButton,
-                {
-                  backgroundColor: accepted ? '#888' : '#5BD55F',
-                  opacity: accepted ? 0.3 : 1,
-                },
-              ]}
-            >
-              <MaterialIcons name='phone' size={40} color={colors.light} />
-            </View>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity disabled={tipIsPlaying} onPress={replay}>
-            <View
-              style={[
-                styles.roundButton,
-                {
-                  backgroundColor: tipIsPlaying ? '#888' : '#5BD55F',
-                  opacity: tipIsPlaying ? 0.3 : 1,
-                },
-              ]}
+              style={{
+                ...styles.roundButton,
+                backgroundColor: '#5BD55F',
+              }}
             >
               <MaterialIcons name='phone' size={40} color={colors.light} />
             </View>
           </TouchableOpacity>
         )}
+        {/* replay button */}
+        {state == states.TIP_OVER && (
+          <TouchableOpacity onPress={() => setstate(states.REPLAY)}>
+            <View
+              style={{
+                ...styles.roundButton,
+                backgroundColor: '#5BD55F',
+              }}
+            >
+              <MaterialIcons name='replay' size={40} color={colors.light} />
+            </View>
+          </TouchableOpacity>
+        )}
 
-        <TouchableOpacity onPress={() => refuse()}>
-          <View style={[styles.roundButton, { backgroundColor: '#EF5353' }]}>
+        {/* refuse button */}
+        <TouchableOpacity
+          onPress={() => {
+            unmount()
+            refuse()
+          }}
+          disabled={state == states.TIP_PLAYING}
+        >
+          <View
+            style={{
+              ...styles.roundButton,
+              backgroundColor: state == states.TIP_PLAYING ? '#888' : '#EF5353',
+            }}
+          >
             <MaterialIcons name='close' size={40} color={colors.light} />
           </View>
         </TouchableOpacity>
@@ -193,6 +233,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignSelf: 'center',
     width: '70%',
+    marginTop: 80,
   },
   character: {
     alignItems: 'center',

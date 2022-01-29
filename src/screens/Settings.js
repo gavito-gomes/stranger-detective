@@ -40,9 +40,13 @@ export default function Settings({ navigation }) {
             selectedValue={interval}
             onValueChange={(itemValue, i) => setinterval(itemValue)}
           >
-            <Picker.Item label='Lento' value={2} />
-            <Picker.Item label='Normal' value={1.5} />
-            <Picker.Item label='Rapido' value={1} />
+            <Picker.Item label='30s' value={0.5} />
+            <Picker.Item label='45s' value={0.75} />
+            <Picker.Item label='1m' value={1} />
+            <Picker.Item label='1m 30s' value={1.5} />
+            <Picker.Item label='2m' value={2} />
+            <Picker.Item label='2m 30s' value={2.5} />
+            <Picker.Item label='3m' value={3} />
           </Picker>
         </View>
 

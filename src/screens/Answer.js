@@ -15,6 +15,7 @@ import Button from '../components/button'
 import { PLACES, PLAYERS, WEAPONS } from '../constants'
 import { colors } from '../theme'
 import PlayerSelectionCard from '../components/playerSelectionCard'
+import { leaveMatch } from '../store'
 
 const Picker = ({ options, selectedValue, onValueChange }) => {
   const ref = useRef()
@@ -74,6 +75,7 @@ export default function Answer({ navigation }) {
 
   const playerLeaveMatch = () => {
     dispatch(leaveMatch({ id: playerSelected.id }))
+    navigation.goBack()
   }
 
   return !playerSelectedConfirmation ? (
@@ -107,7 +109,7 @@ export default function Answer({ navigation }) {
     </View>
   ) : !answered ? (
     <View style={styles.container}>
-      <Header onReturn={() => setplayerSelected(undefined)}>
+      <Header onReturn={() => setplayerSelectedConfirmation(false)}>
         SOLUÇÃO DO CRIME
       </Header>
       <View style={styles.body}>

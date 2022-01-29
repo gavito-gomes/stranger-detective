@@ -16,8 +16,9 @@ import moment from 'moment'
 export default function Game({ navigation }) {
   const dispatch = useDispatch()
   const queue = useSelector((state) => state.tipQueue)
-  // const tipIntervalTime = useSelector((state) => state.tipIntervalTime)
-  const tipIntervalTime = 5000
+  const definedTipIntervalTime = useSelector((state) => state.tipIntervalTime)
+  // const definedTipIntervalTime = 5000
+  const [tipIntervalTime, settipIntervalTime] = useState(definedTipIntervalTime)
   const timerString = useSelector((state) => state.timer)
 
   const [paused, setpaused] = useState(false)
@@ -37,6 +38,7 @@ export default function Game({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      setshowPauseModal(false)
       timer.start()
       setpaused(false)
       return () => {

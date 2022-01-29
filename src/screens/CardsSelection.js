@@ -50,7 +50,7 @@ export default function CardSelection({ navigation }) {
     const { type, id } = JSON.parse(data)
     console.log('type', data.type, 'id', data.id)
     switch (type) {
-      case 'suspect':
+      case 'killer':
         setsuspect(id)
         break
       case 'weapon':

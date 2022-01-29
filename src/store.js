@@ -53,9 +53,10 @@ const gameInfoSlice = createSlice({
       state.tipQueue = [...state.tipQueue.slice(1)]
     },
     reset: (state) => {
-      Object.keys(initialState).forEach((key) => {
-        state[key] = initialState[key]
-      })
+      state.players = []
+      state.tipQueue = []
+      state.matchInfo = {}
+      state.timer = 0
     },
     increaseTimer: (state, { payload }) => {
       state.timer = state.timer + payload

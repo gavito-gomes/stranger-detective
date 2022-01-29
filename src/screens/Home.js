@@ -7,8 +7,6 @@ import Logo from '../../assets/logo.png'
 import Button from '../components/button'
 import { persistor, reset } from '../store'
 
-persistor.purge()
-
 export default function Home({ navigation }) {
   const dispatch = useDispatch()
 

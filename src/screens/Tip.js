@@ -7,7 +7,7 @@ export default function Tip({ route, navigation }) {
   const { tipParams } = route.params
   // console.log('tip params ', tipParams)
 
-  return Math.random() > 0.45 || true ? (
+  return Math.random() > 0.45 ? (
     <Call tipParams={tipParams} refuse={() => navigation.goBack()} />
   ) : (
     <Message tipParams={tipParams} refuse={() => navigation.goBack()} />
